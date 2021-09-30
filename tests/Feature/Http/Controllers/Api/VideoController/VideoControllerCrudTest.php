@@ -1,39 +1,17 @@
 <?php
 
-namespace Tests\Feature\Http\Controllers\Api;
+namespace Tests\Feature\Http\Controllers\Api\VideoController;
 
-// use App\Http\Controllers\Api\VideoController;
 use App\Models\Category;
 use App\Models\Genre;
 use App\Models\Video;
-use Illuminate\Foundation\Testing\DatabaseMigrations;
-use Illuminate\Http\UploadedFile;
-use Tests\TestCase;
-use Tests\Traits\TestUploads;
+use Tests\Feature\Http\Controllers\Api\VideoController\BaseVideoControllerTestCase;
 use Tests\Traits\TestSaves;
 use Tests\Traits\TestValidations;
-// use Tests\Exceptions\TestException;
-// use Illuminate\Http\Request;
 
-class VideoControllerTest extends TestCase
+class VideoControllerCrudTest extends BaseVideoControllerTestCase
 {
-    use DatabaseMigrations, TestValidations, TestSaves, TestUploads;
-
-    private $video;
-    private $sendData;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-        $this->video = factory(Video::class)->create(['opened' => false]);
-        $this->sendData = [
-            'title' => 'title',
-            'description' => 'description',
-            'year_launched' => 2010,
-            'rating' => Video::RATING_LIST[0],
-            'duration' => 90,
-        ];
-    }
+    use TestValidations, TestSaves;
 
     public function testIndex()
     {
@@ -157,16 +135,6 @@ class VideoControllerTest extends TestCase
         ];
         $this->assertInvalidationInStoreAction($data, 'in');
         $this->assertInvalidationInUpdateAction($data,'in');          
-    }
-
-    public function testInvalidationVideoField()
-    {
-        $this->assertInvalidationFile(
-            'video_file',
-            'mp4',
-            12,
-            'mimetypes', ['values' => 'video/mp4']
-        );
     }
 
     public function testSaveWithoutFiles()
@@ -333,146 +301,6 @@ class VideoControllerTest extends TestCase
             'video_id' => $response->json('id'),
         ]);
     }
-
-    public function testStoreWithFiles()
-    {
-        \Storage::fake();
-        $files = $this->getFiles();
-
-        $category = factory(Category::class)->create();
-        $genre = factory(Genre::class)->create();
-        $genre->categories()->sync([$category->id]);
-
-        $relations = [
-            'categories_id' => [$category->id],
-            'genres_id' => [$genre->id]
-        ];
-
-        $response = $this->json(
-            'POST',
-            $this->routeStore(),
-            $this->sendData + $relations + $files
-        );
-
-        $response->assertStatus(201);
-        $id = $response->json('id');
-        foreach ($files as $file) {
-            \Storage::assertExists("$id/{$file->hashName()}");
-        }
-    }
-
-    public function testUpdateWithFiles()
-    {
-        \Storage::fake();
-        $files = $this->getFiles();
-
-        $category = factory(Category::class)->create();
-        $genre = factory(Genre::class)->create();
-        $genre->categories()->sync([$category->id]);
-
-        $relations = [
-            'categories_id' => [$category->id],
-            'genres_id' => [$genre->id]
-        ];
-
-        $response = $this->json(
-            'PUT',
-            $this->routeUpdate(),
-            $this->sendData + $relations + $files
-        );
-
-        $response->assertStatus(200);
-        $id = $response->json('id');
-        foreach ($files as $file) {
-            \Storage::assertExists("$id/{$file->hashName()}");
-        }
-    }
-
-    protected function getFiles()
-    {
-        return [
-            'video_file' => UploadedFile::fake()->create("video_file.mp4")
-        ];
-    }
-
-    // public function testRollbackStore()
-    // {
-    //     $controller = \Mockery::mock(VideoController::class)
-    //         ->makePartial()
-    //         ->shouldAllowMockingProtectedMethods();
-
-    //     $controller
-    //         ->shouldReceive('validate')
-    //         ->withAnyArgs()
-    //         ->andReturn($this->sendData);
-
-    //     $controller
-    //         ->shouldReceive('rulesStore')
-    //         ->withAnyArgs()
-    //         ->andReturn([]);
-
-    //     $controller
-    //         ->shouldReceive('handleRelations')
-    //         ->once()
-    //         ->andThrow(new TestException());
-
-    //     $request = \Mockery::mock(Request::class);
-
-    //     $request
-    //         ->shouldReceive('get')
-    //         ->withAnyArgs()
-    //         ->andReturnNull();
-
-    //     $hasError = false;
-    //     try{
-    //         $controller->store($request);
-    //     } catch (TestException $exception) {
-    //         $this->assertCount(1, Video::all());
-    //         $hasError = true;
-    //     }
-    //     $this->assertTrue($hasError);
-    // }
-
-    // public function testRollbackUpdate()
-    // {
-    //     $updatedTitle = 'Update Rollback Test';
-
-    //     $controller = \Mockery::mock(VideoController::class)
-    //         ->makePartial()
-    //         ->shouldAllowMockingProtectedMethods();
-
-    //     $controller
-    //         ->shouldReceive('validate')
-    //         ->withAnyArgs()
-    //         ->andReturn(['title' => $updatedTitle]);
-
-    //     $controller
-    //         ->shouldReceive('rulesUpdate')
-    //         ->withAnyArgs()
-    //         ->andReturn([]);
-
-    //     $controller
-    //         ->shouldReceive('handleRelations')
-    //         ->once()
-    //         ->andThrow(new TestException());
-
-    //     $request = \Mockery::mock(Request::class);
-
-    //     $request
-    //         ->shouldReceive('get')
-    //         ->withAnyArgs()
-    //         ->andReturnNull();
-            
-    //     $hasError = false;
-    //     try{
-    //         $controller->update($request, $this->video->id);
-    //     } catch (TestException $exception) {
-    //         $this->video->refresh();
-    //         $this->assertNotEquals($updatedTitle, $this->video->title);
-    //         $hasError = true;
-    //     }
-    //     $this->assertTrue($hasError);
-    // }
     
     public function testDestroy()
     {
