@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Models\Unit;
+namespace Tests\Unit\Models;
 
 use App\Models\Traits\UploadFiles;
 use Tests\TestCase;
@@ -31,7 +31,9 @@ class VideoUnitTest extends TestCase
             'rating',
             'duration',
             'video_file',
-            'thumb_file'
+            'thumb_file',
+            'banner_file',
+            'trailer_file'
         ];
 
         $this->assertEquals($fillable, $this->video->getFillable());
