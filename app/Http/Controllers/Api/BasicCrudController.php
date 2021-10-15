@@ -2,20 +2,34 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Http\Resources\CategoryResource;
 use App\Http\Controllers\Controller;
+use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Http\Resources\Json\ResourceCollection;
 
 abstract class BasicCrudController extends Controller
 {
+    protected $paginationSize = 15;
+
     protected abstract function model();
 
     protected abstract function rulesStore();
 
     protected abstract function rulesUpdate();
 
+    protected abstract function resource();
+
+    protected abstract function resourceColletion();
+
     public function index()
     {
-        return $this->model()::all();
+        $data = !$this->paginationSize ? $this->model()::all(): $this->model()::paginate($this->paginationSize);
+        $resourceCollectionClass = $this->resourceColletion();
+        $refClass = new \ReflectionClass($this->resourceColletion());
+        return $refClass->isSubclassOf(ResourceCollection::class)
+            ? new $resourceCollectionClass($data)
+            : $resourceCollectionClass::collection($data);
     }
 
     public function store(Request $request)
@@ -23,13 +37,15 @@ abstract class BasicCrudController extends Controller
         $validatedData = $this->validate($request, $this->rulesStore());
         $obj = $this->model()::create($validatedData);
         $obj->refresh();
-        return $obj;
+        $resource = $this->resource();
+        return new $resource($obj);
     }
 
     public function show($id)
     {
         $obj = $this->findOrFail($id);
-        return $obj;
+        $resource = $this->resource();
+        return new $resource($obj);
     }
 
     public function update(Request $request, $id)
@@ -37,7 +53,8 @@ abstract class BasicCrudController extends Controller
         $obj = $this->findOrFail($id);
         $validatedData = $this->validate($request, $this->rulesUpdate());
         $obj->update($validatedData);
-        return $obj;
+        $resource = $this->resource();
+        return new $resource($obj);
     }
 
     public function destroy($id)
